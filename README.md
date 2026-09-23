@@ -156,7 +156,7 @@ TypeScript throughout, plus one Python service.
 - **Web** — Next.js (App Router) + React 19, server-side API proxy, hand-written CSS (no UI framework)
 - **API** — NestJS 11, Zod validation, guard-based organization/role authorization
 - **Worker** — a plain Node process: poll loop, job processor, outbox dispatcher
-- **Data** — PostgreSQL via Prisma 6 (Neon serverless HTTP adapter), SQL migrations checked in
+- **Data** — PostgreSQL via Prisma 6 (pooled Neon driver adapter), SQL migrations checked in
 - **Storage** — S3-compatible object storage via the AWS SDK, presigned uploads
 - **Auth** — Clerk (organizations, memberships, roles)
 - **AI** — Google Gemini / OpenRouter behind one adapter

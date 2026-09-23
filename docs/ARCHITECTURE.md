@@ -21,6 +21,7 @@ New business behavior should be added to the owning module, not to a controller,
 3. Keep worker startup limited to configuration, polling, shutdown, and processor construction.
 4. Add new job types through a dedicated handler and explicit payload validation.
 5. Keep external calls observable through persisted job/run status and error messages.
+6. The database driver must support interactive transactions. Several invariants below are enforced by writing inside one, so an HTTP-mode driver silently removes them rather than degrading them. Transaction bounds must also suit the deployment's latency: the defaults assume a local Postgres.
 
 ## State And Reliability Invariants
 
