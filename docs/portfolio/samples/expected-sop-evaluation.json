@@ -1,0 +1,34 @@
+{
+  "missingProofOfFunds": {
+    "score": 60,
+    "rating": "D",
+    "categoryScores": {
+      "documentCompleteness": { "earned": 0, "weight": 40, "status": "missing" },
+      "companyVerification": { "earned": 25, "weight": 25, "status": "met" },
+      "jurisdiction": { "earned": 15, "weight": 15, "status": "met" },
+      "requestedAmount": { "earned": 10, "weight": 10, "status": "met" },
+      "authorityConfirmed": { "earned": 10, "weight": 10, "status": "met" }
+    },
+    "mandatoryFailures": ["proof_of_funds"],
+    "redFlags": [],
+    "missingRequirements": ["proof_of_funds"],
+    "recommendation": "request_proof_of_funds",
+    "explanation": "Mandatory requirements are not satisfied: proof_of_funds."
+  },
+  "allDocumentsSupplied": {
+    "score": 100,
+    "rating": "A",
+    "categoryScores": {
+      "documentCompleteness": { "earned": 40, "weight": 40, "status": "met" },
+      "companyVerification": { "earned": 25, "weight": 25, "status": "met" },
+      "jurisdiction": { "earned": 15, "weight": 15, "status": "met" },
+      "requestedAmount": { "earned": 10, "weight": 10, "status": "met" },
+      "authorityConfirmed": { "earned": 10, "weight": 10, "status": "met" }
+    },
+    "mandatoryFailures": [],
+    "redFlags": [],
+    "missingRequirements": [],
+    "recommendation": "proceed",
+    "explanation": "Evaluation is based on 5 configured scoring categories."
+  }
+}

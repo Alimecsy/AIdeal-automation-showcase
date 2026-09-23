@@ -1,0 +1,10 @@
+{
+  "extends": "@aideal/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "scripts/run-prisma-migration.ts",
+    "tests/migration-target.test.ts"
+  ]
+}

@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@clerk/shared': true
+  '@nestjs/core': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  canvas: set this to true or false
+  esbuild: true
+  prisma: true
+  sharp: true
+  tesseract.js: true

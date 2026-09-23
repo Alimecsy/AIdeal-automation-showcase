@@ -1,0 +1,32 @@
+{
+  "name": "@aideal/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js",
+    "test": "tsx --test tests/*.test.ts",
+    "test:integration": "AIDEAL_INTEGRATION=1 tsx --test tests/live-pipeline.integration.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@aideal/db": "workspace:*",
+    "@aideal/env": "workspace:*",
+    "@aideal/shared": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@prisma/adapter-neon": "^6.19.0",
+    "@types/pdf-parse": "^1.1.5",
+    "mammoth": "^1.12.0",
+    "pdf-parse": "^1.1.1",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@aideal/tsconfig": "workspace:*",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

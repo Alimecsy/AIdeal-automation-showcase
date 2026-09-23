@@ -1,0 +1,14 @@
+node_modules
+.turbo
+.next
+dist
+coverage
+.env
+.env.*
+!.env.example
+.envrc
+.neon
+.neon-context.json
+*.log
+*.tsbuildinfo
+.DS_Store

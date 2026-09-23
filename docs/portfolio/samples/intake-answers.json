@@ -1,0 +1,26 @@
+{
+  "legalName": "Northwind Commodities Ltd",
+  "companyName": "Northwind Commodities Ltd",
+  "registrationNumber": "SYNTH-0000-0001",
+  "jurisdiction": "United Kingdom",
+  "website": "https://northwind.example.com",
+  "address": "1 Example Way, Example City, EX1 2MP",
+  "applicantName": "Jordan Sample",
+  "applicantEmail": "applicant@northwind.example.com",
+  "roleTitle": "Head of Finance",
+  "phone": "+44 20 7946 0000",
+  "authorityConfirmed": true,
+  "requestType": "Import letter of credit",
+  "requestedAmount": "450000 GBP",
+  "sanctionsCheck": false,
+  "adverseMedia": false,
+  "__declarationAccepted": true,
+  "__documents": [
+    {
+      "documentType": "company_registration",
+      "originalFilename": "northwind-registration.pdf",
+      "mimeType": "application/pdf",
+      "storageKey": "org/<organizationId>/session/<sessionId>/northwind-registration.pdf"
+    }
+  ]
+}

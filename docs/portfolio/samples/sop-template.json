@@ -1,0 +1,29 @@
+{
+  "name": "Trade Finance — Standard Screening (sample)",
+  "dealType": "trade_finance",
+  "documentRequirements": [
+    { "documentType": "company_registration", "required": true },
+    { "documentType": "proof_of_funds", "required": true },
+    { "documentType": "trade_contract", "required": false }
+  ],
+  "scoringWeights": {
+    "documentCompleteness": 40,
+    "companyVerification": 25,
+    "jurisdiction": 15,
+    "requestedAmount": 10,
+    "authorityConfirmed": 10
+  },
+  "mandatoryRules": {
+    "requiredDocuments": ["company_registration", "proof_of_funds"],
+    "mustHaveCompanyName": true
+  },
+  "redFlagRules": {
+    "sanctionsCheck": true,
+    "adverseMedia": true
+  },
+  "recommendationRules": {
+    "missingProofOfFunds": "request_proof_of_funds",
+    "missingRequirements": "request_missing_information",
+    "proceed": "proceed"
+  }
+}

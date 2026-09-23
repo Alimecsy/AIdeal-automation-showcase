@@ -1,0 +1,630 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  owner_admin
+  analyst
+  reviewer
+  approver
+}
+
+enum MembershipStatus {
+  invited
+  active
+  disabled
+}
+
+enum DealStatus {
+  submitted
+  processing
+  review_ready
+  action_required
+  accepted
+  rejected
+  manual_review
+  failed
+  archived
+}
+
+enum TemplateStatus {
+  draft
+  active
+  archived
+}
+
+enum IntakeSessionStatus {
+  draft
+  submitted
+  expired
+}
+
+enum DocumentStatus {
+  uploaded
+  extracting
+  analyzed
+  failed
+}
+
+enum JobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum NotificationOutboxStatus {
+  pending
+  processing
+  delivered
+  dead_letter
+}
+
+enum RecommendationStatus {
+  open
+  accepted
+  dismissed
+  completed
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  memberships        OrganizationMembership[]
+  companies          Company[]
+  applicants         Applicant[]
+  dealTypes          DealType[]
+  sopTemplates       SopTemplate[]
+  intakeForms        IntakeForm[]
+  intakeSubmissions  IntakeSubmission[]
+  deals              Deal[]
+  documents          Document[]
+  researchReports    ResearchReport[]
+  aiRuns             AiRun[]
+  sopEvaluations     SopEvaluation[]
+  recommendations    Recommendation[]
+  notifications      Notification[]
+  notificationOutbox NotificationOutbox[]
+  activityLogs       ActivityLog[]
+  auditLogs          AuditLog[]
+  usageEvents        UsageEvent[]
+  jobs               Job[]
+
+  @@map("organizations")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique @map("clerk_user_id")
+  email       String   @unique
+  name        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  memberships   OrganizationMembership[]
+  assignedDeals Deal[]                   @relation("DealAssignee")
+  statusChanges DealStatusHistory[]
+  activityLogs  ActivityLog[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  organizationId String           @map("organization_id")
+  userId         String           @map("user_id")
+  role           MembershipRole
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_memberships")
+}
+
+model Company {
+  id                 String   @id @default(cuid())
+  organizationId     String   @map("organization_id")
+  legalName          String   @map("legal_name")
+  registrationNumber String?  @map("registration_number")
+  jurisdiction       String?
+  identityJurisdiction String @default(dbgenerated("COALESCE(jurisdiction, '')")) @map("identity_jurisdiction")
+  website            String?
+  address            String?
+  verificationStatus String?  @map("verification_status")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  applicants   Applicant[]
+  submissions  IntakeSubmission[]
+  deals        Deal[]
+  documents    Document[]
+
+  @@index([organizationId])
+  @@index([organizationId, legalName])
+  @@unique([organizationId, legalName, identityJurisdiction])
+  @@map("companies")
+}
+
+model Applicant {
+  id                 String   @id @default(cuid())
+  organizationId     String   @map("organization_id")
+  companyId          String?  @map("company_id")
+  name               String
+  roleTitle          String?  @map("role_title")
+  email              String
+  phone              String?
+  authorityConfirmed Boolean  @default(false) @map("authority_confirmed")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company      Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  submissions  IntakeSubmission[]
+  deals        Deal[]
+  documents    Document[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@unique([organizationId, email])
+  @@map("applicants")
+}
+
+model DealType {
+  id                 String   @id @default(cuid())
+  organizationId     String   @map("organization_id")
+  name               String
+  description        String?
+  subtypeOptionsJson Json?    @map("subtype_options_json")
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sopTemplates SopTemplate[]
+  deals        Deal[]
+
+  @@index([organizationId])
+  @@map("deal_types")
+}
+
+model SopTemplate {
+  id                      String         @id @default(cuid())
+  organizationId          String         @map("organization_id")
+  dealTypeId              String         @map("deal_type_id")
+  name                    String
+  version                 Int            @default(1)
+  status                  TemplateStatus @default(draft)
+  scoringWeightsJson      Json?          @map("scoring_weights_json")
+  mandatoryRulesJson      Json?          @map("mandatory_rules_json")
+  redFlagRulesJson        Json?          @map("red_flag_rules_json")
+  recommendationRulesJson Json?          @map("recommendation_rules_json")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  dealType       DealType        @relation(fields: [dealTypeId], references: [id], onDelete: Cascade)
+  intakeForms    IntakeForm[]
+  sopEvaluations SopEvaluation[]
+
+  @@index([organizationId])
+  @@index([dealTypeId])
+  @@map("sop_templates")
+}
+
+model IntakeForm {
+  id                       String         @id @default(cuid())
+  organizationId           String         @map("organization_id")
+  sopTemplateId            String         @map("sop_template_id")
+  name                     String
+  publicSlug               String         @unique @map("public_slug")
+  status                   TemplateStatus @default(draft)
+  sectionsJson             Json?          @map("sections_json")
+  documentRequirementsJson Json?          @map("document_requirements_json")
+  createdAt                DateTime       @default(now()) @map("created_at")
+  updatedAt                DateTime       @updatedAt @map("updated_at")
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sopTemplate       SopTemplate        @relation(fields: [sopTemplateId], references: [id], onDelete: Cascade)
+  intakeSessions    IntakeSession[]
+  intakeSubmissions IntakeSubmission[]
+
+  @@index([organizationId])
+  @@map("intake_forms")
+}
+
+model IntakeSession {
+  id              String              @id @default(cuid())
+  organizationId  String              @map("organization_id")
+  intakeFormId    String              @map("intake_form_id")
+  applicantEmail  String              @map("applicant_email")
+  resumeTokenHash String              @map("resume_token_hash")
+  answersJson     Json?               @map("answers_json")
+  expiresAt       DateTime            @map("expires_at")
+  status          IntakeSessionStatus @default(draft)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  intakeForm IntakeForm        @relation(fields: [intakeFormId], references: [id], onDelete: Cascade)
+  submission IntakeSubmission?
+
+  @@index([organizationId])
+  @@index([intakeFormId])
+  @@index([resumeTokenHash])
+  @@map("intake_sessions")
+}
+
+model IntakeSubmission {
+  id              String    @id @default(cuid())
+  organizationId  String    @map("organization_id")
+  intakeFormId    String    @map("intake_form_id")
+  intakeSessionId String    @unique @map("intake_session_id")
+  applicantId     String?   @map("applicant_id")
+  companyId       String?   @map("company_id")
+  rawAnswersJson  Json?     @map("raw_answers_json")
+  status          String    @default("submitted")
+  submittedAt     DateTime? @map("submitted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  intakeForm      IntakeForm    @relation(fields: [intakeFormId], references: [id], onDelete: Cascade)
+  intakeSession   IntakeSession @relation(fields: [intakeSessionId], references: [id], onDelete: Cascade)
+  applicant       Applicant?    @relation(fields: [applicantId], references: [id], onDelete: SetNull)
+  company         Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  deal            Deal?
+  finalizationJob Job?          @relation("IntakeFinalizationJob")
+
+  @@index([organizationId])
+  @@index([intakeFormId])
+  @@map("intake_submissions")
+}
+
+model Deal {
+  id                 String     @id @default(cuid())
+  organizationId     String     @map("organization_id")
+  intakeSubmissionId String?    @unique @map("intake_submission_id")
+  companyId          String?    @map("company_id")
+  applicantId        String?    @map("applicant_id")
+  dealTypeId         String?    @map("deal_type_id")
+  title              String
+  subtype            String?
+  requestedAmount    Decimal?   @map("requested_amount") @db.Decimal(18, 2)
+  currency           String?
+  status             DealStatus @default(submitted)
+  assignedToUserId   String?    @map("assigned_to_user_id")
+  currentRating      String?    @map("current_rating")
+  currentScore       Int?       @map("current_score")
+  confidence         String?
+  recommendedAction  String?    @map("recommended_action")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  intakeSubmission IntakeSubmission?   @relation(fields: [intakeSubmissionId], references: [id], onDelete: SetNull)
+  company          Company?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  applicant        Applicant?          @relation(fields: [applicantId], references: [id], onDelete: SetNull)
+  dealType         DealType?           @relation(fields: [dealTypeId], references: [id], onDelete: SetNull)
+  assignedTo       User?               @relation("DealAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  statusHistory    DealStatusHistory[]
+  documents        Document[]
+  researchReports  ResearchReport[]
+  aiRuns           AiRun[]
+  sopEvaluations   SopEvaluation[]
+  recommendations  Recommendation[]
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, assignedToUserId])
+  @@index([organizationId, currentRating])
+  @@map("deals")
+}
+
+model DealStatusHistory {
+  id              String      @id @default(cuid())
+  dealId          String      @map("deal_id")
+  fromStatus      DealStatus? @map("from_status")
+  toStatus        DealStatus  @map("to_status")
+  changedByUserId String?     @map("changed_by_user_id")
+  reason          String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  deal      Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([dealId, createdAt])
+  @@map("deal_status_history")
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  organizationId   String         @map("organization_id")
+  dealId           String?        @map("deal_id")
+  applicantId      String?        @map("applicant_id")
+  companyId        String?        @map("company_id")
+  documentType     String         @map("document_type")
+  originalFilename String         @map("original_filename")
+  storageKey       String         @map("storage_key")
+  mimeType         String         @map("mime_type")
+  sizeBytes        Int            @map("size_bytes")
+  status           DocumentStatus @default(uploaded)
+  uploadedAt       DateTime       @default(now()) @map("uploaded_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?                @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  applicant    Applicant?           @relation(fields: [applicantId], references: [id], onDelete: SetNull)
+  company      Company?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  extractions  DocumentExtraction[]
+
+  @@unique([dealId, storageKey])
+  @@index([organizationId, dealId, status])
+  @@index([organizationId, status])
+  @@map("documents")
+}
+
+model DocumentExtraction {
+  id                  String    @id @default(cuid())
+  documentId          String    @map("document_id")
+  extractionStatus    JobStatus @map("extraction_status")
+  textStorageKey      String?   @map("text_storage_key")
+  extractedFieldsJson Json?     @map("extracted_fields_json")
+  pageSummariesJson   Json?     @map("page_summaries_json")
+  confidence          String?
+  errorMessage        String?   @map("error_message")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_extractions")
+}
+
+model ResearchReport {
+  id                   String    @id @default(cuid())
+  organizationId       String    @map("organization_id")
+  dealId               String    @map("deal_id")
+  provider             String
+  status               JobStatus
+  summary              String?
+  verifiedFactsJson    Json?     @map("verified_facts_json")
+  unverifiedClaimsJson Json?     @map("unverified_claims_json")
+  inconsistenciesJson  Json?     @map("inconsistencies_json")
+  redFlagsJson         Json?     @map("red_flags_json")
+  sourcesJson          Json?     @map("sources_json")
+  confidence           String?
+  errorMessage         String?   @map("error_message")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal         @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([dealId])
+  @@map("research_reports")
+}
+
+model AiRun {
+  id             String    @id @default(cuid())
+  organizationId String    @map("organization_id")
+  dealId         String?   @map("deal_id")
+  runType        String    @map("run_type")
+  provider       String
+  model          String
+  promptVersion  String    @map("prompt_version")
+  inputRefsJson  Json?     @map("input_refs_json")
+  outputJson     Json?     @map("output_json")
+  confidence     String?
+  status         JobStatus
+  errorMessage   String?   @map("error_message")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([dealId])
+  @@map("ai_runs")
+}
+
+model SopEvaluation {
+  id                      String   @id @default(cuid())
+  organizationId          String   @map("organization_id")
+  dealId                  String   @map("deal_id")
+  sopTemplateId           String   @map("sop_template_id")
+  score                   Int
+  rating                  String
+  categoryScoresJson      Json?    @map("category_scores_json")
+  mandatoryFailuresJson   Json?    @map("mandatory_failures_json")
+  redFlagsJson            Json?    @map("red_flags_json")
+  missingRequirementsJson Json?    @map("missing_requirements_json")
+  recommendation          String?
+  explanation             String?
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal         @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  sopTemplate  SopTemplate  @relation(fields: [sopTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([dealId])
+  @@map("sop_evaluations")
+}
+
+model Recommendation {
+  id             String               @id @default(cuid())
+  organizationId String               @map("organization_id")
+  dealId         String               @map("deal_id")
+  type           String
+  title          String
+  rationale      String?
+  priority       String
+  status         RecommendationStatus @default(open)
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal         @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([dealId])
+  @@map("recommendations")
+}
+
+model Notification {
+  id                 String    @id @default(cuid())
+  organizationId     String    @map("organization_id")
+  userId             String?   @map("user_id")
+  dealId             String?   @map("deal_id")
+  eventId            String    @map("event_id")
+  dedupeKey          String    @map("dedupe_key")
+  type               String
+  priority           String
+  title              String
+  body               String?
+  readAt             DateTime? @map("read_at")
+  deliveryStatusJson Json?     @map("delivery_status_json")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([organizationId])
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+/// Immutable, tenant-scoped notification intent. A row is delivered only once
+/// the corresponding in-app notification has been committed.
+model NotificationOutbox {
+  id             String                   @id @default(cuid())
+  organizationId String                   @map("organization_id")
+  eventId        String                   @map("event_id")
+  dedupeKey      String                   @map("dedupe_key")
+  eventType      String                   @map("event_type")
+  schemaVersion  Int                      @map("schema_version")
+  priority       String
+  actorJson      Json                     @map("actor_json")
+  payloadJson    Json                     @map("payload_json")
+  occurredAt     DateTime                 @map("occurred_at") @db.Timestamptz(3)
+  status         NotificationOutboxStatus @default(pending)
+  attempts       Int                      @default(0)
+  availableAt    DateTime                 @default(now()) @map("available_at") @db.Timestamptz(3)
+  lockedAt       DateTime?                @map("locked_at") @db.Timestamptz(3)
+  lockedBy       String?                  @map("locked_by")
+  lastError      String?                  @map("last_error")
+  deliveredAt    DateTime?                @map("delivered_at") @db.Timestamptz(3)
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, dedupeKey])
+  @@index([status, availableAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([status, lockedAt])
+  @@map("notification_outbox")
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  dealId         String?  @map("deal_id")
+  actorUserId    String?  @map("actor_user_id")
+  actorType      String   @map("actor_type")
+  eventType      String   @map("event_type")
+  eventJson      Json?    @map("event_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  actorUser    User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([dealId, createdAt])
+  @@map("activity_logs")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  actorUserId    String?  @map("actor_user_id")
+  action         String
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id")
+  beforeJson     Json?    @map("before_json")
+  afterJson      Json?    @map("after_json")
+  ipAddress      String?  @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorUser    User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, entityType, entityId, createdAt])
+  @@map("audit_logs")
+}
+
+model UsageEvent {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id")
+  eventType         String   @map("event_type")
+  quantity          Int      @default(1)
+  relatedEntityType String?  @map("related_entity_type")
+  relatedEntityId   String?  @map("related_entity_id")
+  metadataJson      Json?    @map("metadata_json")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, eventType, createdAt])
+  @@map("usage_events")
+}
+
+model Job {
+  id                 String    @id @default(cuid())
+  organizationId     String    @map("organization_id")
+  type               String
+  payloadJson        Json?     @map("payload_json")
+  status             JobStatus @default(queued)
+  attempts           Int       @default(0)
+  maxAttempts        Int       @default(3) @map("max_attempts")
+  errorMessage       String?   @map("error_message")
+  availableAt        DateTime  @default(now()) @map("available_at") @db.Timestamptz(3)
+  leaseExpiresAt     DateTime? @map("lease_expires_at") @db.Timestamptz(3)
+  leaseToken         String?   @map("lease_token")
+  intakeSubmissionId String?   @unique @map("intake_submission_id")
+  startedAt          DateTime? @map("started_at")
+  completedAt        DateTime? @map("completed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  intakeSubmission IntakeSubmission? @relation("IntakeFinalizationJob", fields: [intakeSubmissionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, type, createdAt])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+  @@map("jobs")
+}
