@@ -36,5 +36,10 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      # The generated Prisma client is not committed, so the typed enums and
+      # model types the workspace imports do not exist until this runs.
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
       - name: Run formatting, unit tests, and typechecks
         run: pnpm verify
