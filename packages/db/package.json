@@ -13,6 +13,7 @@
     "migrate:ci": "tsx scripts/run-prisma-migration.ts deploy",
     "migrate:disposable": "tsx scripts/run-prisma-migration.ts deploy",
     "patch:notifications": "tsx scripts/patch-notifications.ts",
+    "upgrade:bootstrap-schema": "tsx scripts/upgrade-bootstrap-schema.ts",
     "test:db": "tsx --test tests/jobs.database.test.ts",
     "test:migration-target": "tsx --test tests/migration-target.test.ts",
     "studio": "prisma studio",

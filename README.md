@@ -261,6 +261,8 @@ If you would rather not stand up providers, `pnpm verify` exercises the same rel
 
 **AIDeal is a working system under active hardening. It is not a finished, deployed production product, and this repository does not claim otherwise.**
 
+The end-to-end pipeline has been run against live providers: a public submission advanced `submitted → processing → review_ready` with document extraction, AI deal-packet generation, research collection, and SOP evaluation all completing, the governed transition accepted, and the notification outbox fully drained. That run needed configuration the documentation did not describe, which is recorded in the operations runbook.
+
 Implemented, and covered by automated tests:
 
 - Configurable intake forms, public sessions, presigned uploads, submission validation, duplicate prevention
@@ -274,6 +276,7 @@ Implemented, and covered by automated tests:
 
 Incomplete or actively being hardened — stated plainly:
 
+- **Two lifecycle mutations are missing, and they block the product's own happy path.** An intake form's status can only be set when it is created: there is no endpoint to publish a draft or archive a live form. SOP templates are worse — they are created `draft` by schema default and nothing in the API or UI can activate them, yet SOP evaluation requires an active template. Both are missing slices rather than broken ones: the statuses are modelled, enforced at the public boundary, and honoured by the worker; only the mutation to move between them was never built.
 - **No production or staging deployment has been performed.** [`docs/OPERATIONS-RUNBOOK.md`](docs/OPERATIONS-RUNBOOK.md) is a validated plan, not a record of a release.
 - **Email delivery is not implemented.** The notification event contract and the in-app consumer are built; the email provider settings in `.env.example` are reserved for that work and no provider send exists yet.
 - Several security properties can only be confirmed against live providers — real presigned uploads, multi-instance Redis rate limiting, and identity-provider edge cases. [`docs/SECURITY-VERIFICATION.md`](docs/SECURITY-VERIFICATION.md) states precisely what the test suite does and does not prove.

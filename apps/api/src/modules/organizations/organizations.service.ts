@@ -3,6 +3,15 @@ import { Injectable } from "@nestjs/common";
 import type { CurrentWorkspace } from "../auth/auth.types";
 import { PrismaService } from "../prisma.service";
 
+function isUniqueConstraintViolation(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
+
 @Injectable()
 export class OrganizationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -91,6 +100,44 @@ export class OrganizationsService {
     const role = input.role ?? "owner_admin";
     const status = input.status ?? "active";
 
+    try {
+      return await this.provisionWorkspace(input, role, status);
+    } catch (error) {
+      if (!isUniqueConstraintViolation(error)) {
+        throw error;
+      }
+
+      // Two bootstraps for the same sign-in can overlap -- the page is
+      // reachable by reload, and entering a transaction here is slow enough
+      // that the loser's snapshot predates the winner's commit, so its insert
+      // lands on the unique user identity. The workspace the caller asked for
+      // exists either way, so return it rather than failing a request whose
+      // intended outcome already holds.
+      const workspace = await this.getCurrentWorkspace(
+        input.clerkUserId,
+        input.clerkOrganizationId,
+      );
+
+      if (!workspace) {
+        throw error;
+      }
+
+      return workspace;
+    }
+  }
+
+  private provisionWorkspace(
+    input: {
+      clerkOrganizationId: string;
+      organizationName: string;
+      organizationSlug: string;
+      clerkUserId: string;
+      email: string;
+      name: string | null;
+    },
+    role: MembershipRole,
+    status: MembershipStatus,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.upsert({
         where: {

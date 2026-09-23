@@ -59,6 +59,15 @@ Required for the deployed API and worker:
 - Clerk keys: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`
 - R2 credentials: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
   and `R2_BUCKET`
+- A CORS policy on the R2 bucket itself. Applicants upload straight to storage
+  with a presigned URL, so the browser issues a cross-origin `PUT` that the
+  bucket must allow; without it the upload fails in the browser as a network
+  error while every server-side check still passes. This is bucket
+  configuration, not an environment variable, and it is per bucket: a new
+  bucket starts with no CORS configuration at all. Grant only the `PUT` method,
+  only the `content-type` header, and only the exact web origins for that
+  environment. Reads are server-side and need no browser-origin grant, and a
+  wildcard origin must not be used.
 - AI credentials and selection: `AI_DEFAULT_PROVIDER`, plus the matching
   Gemini or OpenRouter key and model variables
 - `TAVILY_API_KEY` and a reachable `RESEARCH_SCRAPER_URL`

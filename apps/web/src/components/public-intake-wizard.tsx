@@ -424,12 +424,15 @@ export function PublicIntakeWizard({
             disabled={isReadOnly}
             rows={5}
             value={value}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+              // Read before updating: React clears currentTarget once the
+              // handler returns, and the updater can run after that.
+              const nextValue = event.currentTarget.value;
               setAnswers((currentAnswers) => ({
                 ...currentAnswers,
-                [key]: (event.currentTarget as HTMLTextAreaElement).value,
-              }))
-            }
+                [key]: nextValue,
+              }));
+            }}
           />
         </label>
       );
@@ -446,12 +449,13 @@ export function PublicIntakeWizard({
             className="input"
             disabled={isReadOnly}
             value={value}
-            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+            onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+              const nextValue = event.currentTarget.value;
               setAnswers((currentAnswers) => ({
                 ...currentAnswers,
-                [key]: (event.currentTarget as HTMLSelectElement).value,
-              }))
-            }
+                [key]: nextValue,
+              }));
+            }}
           >
             <option value="">Select</option>
             {field.options.map((option, index) => (
@@ -478,12 +482,13 @@ export function PublicIntakeWizard({
           disabled={isReadOnly}
           type={field.type === "number" ? "number" : field.type === "email" ? "email" : "text"}
           value={value}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            const nextValue = event.currentTarget.value;
             setAnswers((currentAnswers) => ({
               ...currentAnswers,
-              [key]: (event.currentTarget as HTMLInputElement).value,
-            }))
-          }
+              [key]: nextValue,
+            }));
+          }}
         />
       </label>
     );
@@ -552,14 +557,13 @@ export function PublicIntakeWizard({
                 checked={answers[declarationKey] === "true"}
                 disabled={isReadOnly}
                 type="checkbox"
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                  const nextChecked = event.currentTarget.checked;
                   setAnswers((currentAnswers) => ({
                     ...currentAnswers,
-                    [declarationKey]: String(
-                      (event.currentTarget as HTMLInputElement).checked,
-                    ),
-                  }))
-                }
+                    [declarationKey]: String(nextChecked),
+                  }));
+                }}
               />
               <span>
                 I confirm that the information submitted is accurate and that I am
