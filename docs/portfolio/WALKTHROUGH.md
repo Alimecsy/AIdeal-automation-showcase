@@ -21,7 +21,7 @@ pnpm build
 pnpm demo:sop    # runs the real SOP evaluator on the synthetic sample
 ```
 
-`pnpm verify` runs 99 tests across the API, worker, shared contracts, and migration wrapper. One integration test (live PDF extraction plus a live model call) is skipped unless real provider credentials are present; everything else runs offline.
+`pnpm verify` runs 108 tests across the API, worker, shared contracts, and migration wrapper. One integration test (live PDF extraction plus a live model call) is skipped unless real provider credentials are present; everything else runs offline.
 
 `pnpm demo:sop` executes [`samples/evaluate-sample.ts`](samples/evaluate-sample.ts), which calls the same `evaluateSop` function the worker calls, against [`samples/sop-template.json`](samples/sop-template.json) and [`samples/intake-answers.json`](samples/intake-answers.json). Its output should match [`samples/expected-sop-evaluation.json`](samples/expected-sop-evaluation.json) byte for byte. That file is not hand-written prose — it is the recorded output of the real evaluator.
 

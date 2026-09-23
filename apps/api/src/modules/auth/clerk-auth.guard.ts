@@ -10,6 +10,16 @@ import type { AuthContext } from "./auth.types";
 
 @Injectable()
 export class ClerkAuthGuard implements CanActivate {
+  /**
+   * Token verification is held as a replaceable member so the guard's own
+   * behavior can be exercised without a live Clerk instance. Production always
+   * uses Clerk's verifier.
+   */
+  private readonly verify = (token: string) =>
+    verifyToken(token, {
+      secretKey: env.CLERK_SECRET_KEY,
+    }) as unknown as Promise<Record<string, unknown>>;
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
@@ -21,15 +31,15 @@ export class ClerkAuthGuard implements CanActivate {
       throw new UnauthorizedException("Missing authorization token");
     }
 
-    const verified = await verifyToken(token, {
-      secretKey: env.CLERK_SECRET_KEY,
-    });
+    // verifyToken resolves with the payload and throws on any verification
+    // failure; it does not report failure through the returned value.
+    let claims: Record<string, unknown>;
 
-    if (!verified.data) {
+    try {
+      claims = await this.verify(token);
+    } catch {
       throw new UnauthorizedException("Invalid Clerk token");
     }
-
-    const claims = verified.data as Record<string, unknown>;
 
     const clerkUserId =
       typeof claims.sub === "string" ? claims.sub : null;
@@ -40,12 +50,34 @@ export class ClerkAuthGuard implements CanActivate {
 
     request.auth = {
       clerkUserId,
-      clerkOrgId: typeof claims.org_id === "string" ? claims.org_id : null,
-      orgRole: typeof claims.org_role === "string" ? claims.org_role : null,
-      orgSlug: typeof claims.org_slug === "string" ? claims.org_slug : null,
+      ...this.readOrganizationClaims(claims),
     };
 
     return true;
+  }
+
+  /**
+   * Version 2 session tokens carry organization claims in a nested `o` object;
+   * version 1 tokens use flat `org_*` claims. Only the organization id is load
+   * bearing here: authorization reads the locally persisted membership role,
+   * not the role claim, so the two role encodings never need reconciling.
+   */
+  private readOrganizationClaims(claims: Record<string, unknown>) {
+    const nested =
+      claims.o && typeof claims.o === "object" && !Array.isArray(claims.o)
+        ? (claims.o as Record<string, unknown>)
+        : null;
+
+    const read = (nestedKey: string, flatKey: string) => {
+      const value = nested ? nested[nestedKey] : claims[flatKey];
+      return typeof value === "string" && value.length > 0 ? value : null;
+    };
+
+    return {
+      clerkOrgId: read("id", "org_id"),
+      orgRole: read("rol", "org_role"),
+      orgSlug: read("slg", "org_slug"),
+    };
   }
 
   private getBearerToken(header: string | string[] | undefined) {
