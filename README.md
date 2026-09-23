@@ -1,5 +1,7 @@
 # AIDeal — AI-Powered Deal Intake & Operations Automation
 
+[![Quality Gate](https://github.com/Alimecsy/AIdeal-automation-showcase/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/Alimecsy/AIdeal-automation-showcase/actions/workflows/quality-gate.yml)
+
 A working system that takes an inbound financing/trade request from a public intake form all the way to a scored, evidence-backed recommendation sitting in a human reviewer's queue — with the AI steps contained inside a governed, retryable, auditable workflow.
 
 > **Portfolio snapshot.** This is a sanitized public snapshot of a privately developed project, published as engineering evidence. See [About this repository](#about-this-repository).
@@ -218,6 +220,8 @@ pnpm verify       # format check + unit/contract tests + typecheck
 pnpm build
 pnpm demo:sop     # runs the real SOP evaluator against synthetic sample data
 ```
+
+[The quality gate](.github/workflows/quality-gate.yml) runs the install, `pnpm db:generate`, and `pnpm verify` steps of that sequence on every push, so the badge above reflects a clean-checkout run of those checks on a machine that is not mine.
 
 Running the *application* additionally needs a Postgres database, object storage, an auth provider, and an AI provider key. Fill in `.env` from `.env.example` — which contains placeholders only; no real values are published here — then:
 
