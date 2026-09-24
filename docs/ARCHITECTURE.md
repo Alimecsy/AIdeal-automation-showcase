@@ -34,7 +34,7 @@ New business behavior should be added to the owning module, not to a controller,
 
 ## Testing Contract
 
-Every new domain behavior should have a focused test at the owning boundary. Prefer in-memory ports for unit tests and reserve Neon, Redis, R2, and Gemini calls for explicit integration checks.
+Every new domain behavior should have a focused test at the owning boundary. Module wiring is the exception: the test runner does not emit the decorator metadata Nest resolves dependencies from, so a wiring defect cannot fail a unit test. The build gate boots the compiled application instead. Prefer in-memory ports for unit tests and reserve Neon, Redis, R2, and Gemini calls for explicit integration checks.
 
 Minimum coverage for the next build slices:
 

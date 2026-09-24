@@ -8,6 +8,7 @@
     "lint": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/main.js",
     "test": "tsx --test tests/*.test.ts",
+    "smoke": "nest build && node scripts/smoke-bootstrap.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
